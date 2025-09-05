@@ -1,0 +1,46 @@
+---
+title: "STATS506_problemset1_Takehisa_r2"
+format: pdf
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+**#a.Import the data into a data.frame in R. Use the information in the “abalone.names” file to give appropriate column names. (Note: Downloading and unzipping the file can take place outside of your submitted document, but importing the file should be in the submission.)**
+
+*#function to import #inputs:data set abalones*
+
+abalone_data \<- read.csv( "abalone.data", header = FALSE )
+
+*#function to make column* 
+*#inputs: name of each columm* 
+# outputs: culumn-name*
+
+colnames(abalone_data) <- c( 
+"Sex", "Length", "Diameter", "Height", "Whole_weight", "Shucked_weight", "Viscera_weight", "Shell_weight", "Rings" 
+)
+
+**#b.The data contains information on three different sexes of abalone. Report the number of observations belonging to each sex.**
+
+**# Anser Male:1528, Female:1307, Infant:1342
+
+table(abalone_data\$Sex)
