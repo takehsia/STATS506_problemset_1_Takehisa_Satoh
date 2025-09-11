@@ -4,45 +4,364 @@ format: pdf
 editor: visual
 ---
 
-#a.Import the data into a data.frame in R. Use the information in the “abalone.names” file to give appropriate column names. (Note: Downloading and unzipping the file can take place outside of your submitted document, but importing the file should be in the submission.)
+# Problem 1 - Abalone Data
+# a.Import the data into a data.frame in R. Use the information in the “abalone.names” file to give appropriate column names. (Note: Downloading and unzipping the file can take place outside of your submitted document, but importing the file should be in the submission.)
 
-#function to import #inputs:data set abalones
-
-abalone_data \<- read.csv( "abalone.data", header = FALSE )
+```{r a}
+#function to import 
+#inputs:data set abalones
+abalone_data <- read.csv( "abalone.data", header = FALSE )
 
 #function to make column
-
 #inputs: name of each columm
-
 # outputs: culumn-name
 
 colnames(abalone_data) <- c( "Sex", "Length", "Diameter", "Height", "Whole_weight", "Shucked_weight", "Viscera_weight", "Shell_weight", "Rings" )
+
+```
 
 # b.The data contains information on three different sexes of abalone. Report the number of observations belonging to each sex.
 
 # Answer Male:1528, Female:1307, Infant:1342
 
+```{r b}
 #function to show the number of observations of each sex
 #inputs:sex of each abalone
 #outputs:the number of the number of observations of each sex
-table(abalone_data\$Sex)
+table(abalone_data$Sex)
+```
 
 # c.1.Which weight has the highest correlation with rings?
-# Answer:Shell weight 
 
+# Answer:Shell weight
+
+```{r c1}
 #function to compute correlation between each weight and Rings
 #inputs:each weight and ring size of abalone 
 #outputs:correlation between each and Rings
+
 cor(abalone_data$Whole_weight,abalone_data$Rings)
 cor(abalone_data$Shucked_weight,abalone_data$Rings)
 cor(abalone_data$Viscera_weight,abalone_data$Rings)
 cor(abalone_data$Shell_weight,abalone_data$Rings)
+```
 
 # c.2. For that weight, which sex has the highest correlation?
 
-install.packages("dplyr")
+# Answere:I
 
-sex_correlations <- abalon_data %>%
-  group_by(sex) %>%
+```{r c2}
+library(dplyr)
+
+#function to compute correlation between Shell_weight and Rings for each Sex
+#inputs: Sex, Shell_weight, Rings
+#outputs: Sex and correlation value between Shell_weight and Rings
+
+sex_correlations <- abalone_data %>%
+  group_by(Sex) %>%
+  summarise(
+  corr = cor(Shell_weight,Rings)
+  ) 
+
+sex_correlations
+```
+
+# c.3. What are the weights of the abalone with the most rings?
+
+# Ansewr. Whole_weight:1.8075,Shucked_weight:0.7055, Viscera_weight:0.3215, Shell_weight:0.475
+
+```{r c3}
+
+#function to extract weight values of abalone with maximum Rings
+#inputs: Rings and weights
+#outputs:Whole_weight, Shucked_weight, Viscera_weight, and Shell_weight of abalone with the maximum Rings
+
+abalone_data %>%
+ filter(Rings == max(Rings)) %>%
+ select(Whole_weight, Shucked_weight, Viscera_weight, Shell_weight)
+```
+
+# c.4.What percentage of abalones have a viscera weight larger than their shell weight?
+
+# Ansewer:6.51
+
+```{r c4}
+#function to calculate the percentage of abalones whose Viscera_weight is greater than Shell_weight
+#inputs: Viscera_weight and Shell_weight
+#outputs:percentage of abalones satisfying Viscera_weight > Shell_weight
+
+abalone_data %>%
+summarise(
+percentage = mean(Viscera_weight>Shell_weight)*100
+)
+```
+
+# d.Create a table of correlations between weights and rings, within each sex.
+
+```{r d}
+#function to compute correlation between each weight variable and Rings for each Sex
+
+#inputs: 
+#  - Sex, Rings, and weight columns: Whole_weight, Shucked_weight, Viscera_weight, Shell_weight
+#  - sex categories: "F", "I", "M"
+#  - weight variable names
+#outputs: the correlation between Rings and each weight variable for each Sex 
+
+weights_cols <- c("Whole_weight", "Shucked_weight", "Viscera_weight", "Shell_weight")
+
+sex_levels <- c("F","I","M")
+result <- data.frame(Sex = sex_levels)
+
+for (w in weights_cols){
+  result[[w]] <- sapply(
+    sex_levels, 
+    function(s){cor(abalone_data[abalone_data$Sex == s, w],abalone_data[abalone_data$Sex == s, "Rings"])})
+  
+} 
+
+print(result)
+
+```
+
+# Problem 2 - Food Expenditure Data
+# 2.a.Import the data into a data.frame in R. 
+```{r}
+df_food_expenditure <- read.csv(
+  "food_expenditure.csv", header = TRUE, stringsAsFactors = FALSE
+  )
+
+```
+
+# 2.b.Clean up the variable names. Simplify them.
+```{r}
+#function to rename the columns of df_food_expenditure with descriptive names
+#inputs: original column names
+#outputs: df_food_expenditure with updated column names 
+
+names(df_food_expenditure) <- c(
+  "ID",
+  "age",
+  "household size",
+  "state",
+  "currency",
+  "total_expenditure",
+  "grocery_expenditure",
+  "dining_out_expenditure",
+  "miscellaneous_expenditure",
+  "times_of_dining_out",
+  "alcohol",
+  "assistance_programs"
+)
+
+names(df_food_expenditure)
+
+```
+
+# 2.c.Restrict the data to those paying in US dollars (USD).
+```{r}
+#function to filter the df_food_expenditure data frame for rows with currency == "USD" 
+#inputs: data frame with a column named 'currency')
+#outputs: number of rows before and after the restriction
+
+df_food_expenditure_usd <- subset(df_food_expenditure, currency == "USD")
+cat("Before restricting", nrow(df_food_expenditure),"\n")
+cat("After restricting", nrow(df_food_expenditure_usd),"\n")
+
+```
+
+# 2.d.The variable related to age.
+
+# My rules are the followings.
+#Exclude all respondents younger than 18.
+#Exclude all respondents older than 100.
+#Exclude rows where age is missing (NA) or not numeric.
+```{r}
+#function to remove rows where respondents are younger than 18 or older than 100, or where age is missing. 
+#inputs: 'age'
+#outputs: data frame containing only rows where respondents are older than 18 and younger than 100
+
+df_food_expenditure$age <- as.numeric(
+  df_food_expenditure$age
+  )
+
+df_cleaned_age <- subset(
+  df_food_expenditure,
+  !is.na(age) & age >= 18 & age <= 100
+)
+```
+
+# 2.e. The variable related to state.
+# My rules is to excluding rows where state is missing.
+
+```{r}
+#function to remove rows with missing state values from df_cleaned_age
+#inputs: data frame with a column named 'state'
+#outputs: data frame containing only rows where state is not NA
+
+df_cleaned_age_states <- subset(
+  df_cleaned_age,
+  !is.na(state)
+)
+
+```
+
+# 2.f. The four variables related to food expenditures.
+# My rules are the followings.
+#Exclude rows where variable is negative.
+#Exclude rows where variable is missing.
+```{r}
+#function to clean df_cleaned_age_states by keeping only rows with non-missing and non-negative expenditure values
+#inputs: data frame with expenditure columns
+#outputs: data frame with only rows where all specified expenditure columns are non-missing and nonnegative
+
+cols_to_check <- c(
+  "total_expenditure","grocery_expenditure","dining_out_expenditure","miscellaneous_expenditure")
+
+df_cleaned_age_states_expenditure <- df_cleaned_age_states[
+  complete.cases(df_food_expenditure[, cols_to_check]) &
+  apply(df_food_expenditure[, cols_to_check], 1, function(x) all(x >= 0)),
+  ]
+
+```
+
+# 2.g. The variable related to number of times dining out.
+# My rule is to exclude where variable is more than 7.
+
+```{r}
+
+#function to filter df_cleaned_age_states_expenditure for rows where times_of_dining_out is at least 8
+#inputs: data frame with a column 'times_of_dining_out'
+#outputs: data frame containing only rows with times_of_dining_out >= 8
+
+df_cleaned_age_states_expenditure_dining_out <- subset(
+  df_cleaned_age_states_expenditure,
+  times_of_dining_out >= 8 
+)
+
+```
+
+# 2.h.Report your final number of observations after this cleaning.
+```{r}
+
+cat ("Final number of observations after cleaning is ",nrow(df_cleaned_age_states_expenditure_dining_out))
+
+```
+# problem3  Collatz conjecture
+# 3.a.Write function nextCollatz that given a positive integer, computes the next number in its Collatz sequence. 
+```{r}
+# function to compute the next number in the Collatz sequence
+# inputs: a positive integer n
+# outputs: the next integer in the Collatz sequence
+
+nextCollatz <- function(n) {
+  if (!is.numeric(n) || length(n) != 1 || n != as.integer(n)) {
+    stop("Input must be a single integer.")
+  }
+  n <- as.integer(n)
+
+  if (n <= 0) {
+    stop("Input must be a positive integer.")
+  }
+
+  if (n %% 2 == 0) {
+    return(n / 2)
+  } else {
+    return(3 * n + 1)  
+  }
+}
+
+nextCollatz(5)
+
+nextCollatz(16)
+```
+# 3.b.Create a function collatzSequence that returns the Collatz sequence for a given input. 
 
 
+```{r}
+# function to generate the Collatz sequence
+# inputs: a positive integer n
+# outputs: a list containing
+#          - sequence: vector of Collatz sequence values from n to 1
+#          - length: length of the sequence
+
+collatzSequence <- function(n) {
+  if (!is.numeric(n) || length(n) != 1 || n != as.integer(n)) {
+    stop("Input must be a single integer.")
+  }
+  n <- as.integer(n)
+  if (n <= 0) {
+    stop("Input must be a positive integer.")
+  }
+
+  seq_vals <- c(n)
+  while (n != 1) {
+    n <- nextCollatz(n)
+    seq_vals <- c(seq_vals, n)
+  }
+
+  return(list(sequence = seq_vals, length = length(seq_vals)))
+}
+
+collatzSequence(5)
+collatzSequence(19)
+
+```
+
+
+# 3.c.Use these functions to find the shortest and longest Collatz sequence starting with values between 100 and 500, inclusive. 
+```{r}
+# function to find the shortest and longest Collatz sequences 
+#         starting from integers in a given range
+# inputs: start (integer), end (integer) - inclusive range boundaries
+# outputs: a list containing
+#          - shortest_start: starting value that gives the shortest sequence
+#          - shortest_length: length of that sequence
+#          - longest_start: starting value that gives the longest sequence
+#          - longest_length: length of that sequence
+
+findCollatzExtremes <- function(start, end) {
+  if (!is.numeric(start) || !is.numeric(end) || 
+      start != as.integer(start) || end != as.integer(end)) {
+    stop("Inputs must be integers.")
+  }
+  start <- as.integer(start)
+  end <- as.integer(end)
+
+  if (start <= 0 || end <= 0 || start > end) {
+    stop("Inputs must be positive integers with start <= end.")
+  }
+
+  shortest_length <- Inf
+  shortest_start <- NA
+  longest_length <- -Inf
+  longest_start <- NA
+
+  for (n in start:end) {
+    seq_info <- collatzSequence(n)
+    seq_length <- seq_info$length
+
+    if (seq_length < shortest_length || 
+        (seq_length == shortest_length && n < shortest_start)) {
+      shortest_length <- seq_length
+      shortest_start <- n
+    }
+
+    if (seq_length > longest_length || 
+        (seq_length == longest_length && n < longest_start)) {
+      longest_length <- seq_length
+      longest_start <- n
+    }
+  }
+
+  return(list(
+    shortest_start = shortest_start,
+    shortest_length = shortest_length,
+    longest_start = longest_start,
+    longest_length = longest_length
+  ))
+}
+
+result <- findCollatzExtremes(100, 500)
+print(result)
+
+```
